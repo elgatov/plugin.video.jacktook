@@ -242,11 +242,21 @@ def get_magnet_from_uri(uri):
 
     try:
         res = requests.get(
-            uri, allow_redirects=True, timeout=10, headers=USER_AGENT_HEADER
+            uri, allow_redirects=False, timeout=10, headers=USER_AGENT_HEADER
         )
         kodilog(
-            f"get_magnet_from_uri: GET request to {uri} (final url: {res.url}) returned status code: {res.status_code}"
+            f"get_magnet_from_uri: GET request to {uri} returned status code: {res.status_code}"
         )
+         if res.status_code in (301, 302, 303, 307, 308):
+            location = res.headers.get("Location", "")
+            if location.startswith("magnet:"):
+                magnet = location
+                info_hash = get_info_hash_from_magnet(magnet).lower()
+                return magnet, info_hash
+            if location:
+                res = requests.get(
+                    location, allow_redirects=True, timeout=10, headers=USER_AGENT_HEADER
+                )
         if res.status_code == 200:
             kodilog(f"get_magnet_from_uri: Processing content from {uri}")
             if res.url.startswith("magnet:"):
